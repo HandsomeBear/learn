@@ -1,0 +1,248 @@
+Type接口分析
+	1.空接口，所有类型的公共接口，比如原始类型、参数化类型(泛型)、类型变量及数组
+	2.Type的直接子接口
+		2.1 ParameterizedType:参数化的类型，比如Collection，即普通的泛型
+		2.2 TypeVariable:各种类型变量的公共父接口，就是泛型里面的类似T,E
+		2.3 GenericArrayType:表示一种元素类型是参数化类型或者类型变量的数组类型，比如:List<>[],T[]
+		2.4 WildcardType:通配符类型表达式，类似? super T
+	3.Type的直接子类
+		Class对象，代表着原始类型和基本类型
+		
+GenericDeclaration接口分析
+	可以声明类型变量的实体的公共接口，也就是说，只有实现了该接口才能在对应的实体上声明(定义)类型变量，这些实体目前只有三个:Class,Constructor,Method		
+		
+Type类子接口分析
+	1.ParameterizedType-----参数化类型，即泛型
+		1.1	getActualTypeArguments()
+			获得参数化类型中<>里的类型参数的类型，返回的是一个Type[]数组。notice:无论<>有几层<>嵌套，这个方法仅仅脱去最外层的<>,所以返回值类型不一定
+			List<ArrayList> l1;//return ArrayList,Class类型
+			List<ArrayList<String>> l2;//return ArrayList<String>,ParameterizedType类型
+			List<T> l3;//return T,TypeVariable类型
+			List<? extends Number> l4//return ? extends Number,WildcardType类型
+			List<ArrayList<String>[]> l5//return ArrayList<String>[],GenericArrayType类型
+		1.2 getRawType()
+			返回最外层<>前面的那个类型，即Map<K,V>的Map
+		1.3 getOwnerType()
+			获得这个类型的所有者的类型
+			getMethod("retrieve", Map.Entry.class);即Map.Entry的所有者为Map
+	
+	2.TypeVariable-----类型变量，泛指任意或相关一类类型，一般用大写字母K,V,E等做变量
+		2.1 getBounds()
+			获得该类型变量的上边界，若无显示的定义extends，默认为Object，类型变量的上界可能不止一个，因为可以用&符号限定多个(这其中有且只有一个为类或抽象类，
+				且必须放在extends后的第一个，即若有多个上边界，则第一个&后必为接口)
+		2.2 getGenericDeclaration()
+			获得声明(定义)这个类型变量的类型及名称
+		2.3 getName()
+			获得这个类型变量在声明(定义)时候的名称
+	
+	3.GenericArrayType-----泛型数组，形如：A<T>[]或T[]
+		3.1 getGenericComponentType()
+			获取泛型数组中元素的类型，要注意的是：无论从左到右有几个[]并列，这个方法仅脱去最右边的[]之后剩下的内容就作为这个方法的返回值
+	
+	4.WildcardType-----通配符表达式
+		4.1 getUpperBounds()
+			获取泛型表达式的上界
+		4.2 getLowerBounds()
+			获取泛型表达式的下界
+			
+Java类型分类
+	1.raw type:原始类型,对应Class
+	2.parameterized types:参数化类型，对应ParameterType
+	3.array types:数组类型，对应GenericArrayType
+	4.type variable:类型变量，对应TypeVariable
+	5.peimitive types:基本类型，对应Class
+	
+	>1中的Class，不仅仅指平常所指的类，还包括数组、接口、注解、枚举等结构
+	>3中的数组类型GenericArrayType,应该指的是2,4类型数组，而不是我们一般所说的数组
+	>List<T extends ArrayList>[]:List<T extends ArrayList>是ParameterizedType,T就是TypeVariable,T extends ArrayList就是
+		WildcardType,整个就是GenericArrayType
+		
+Dynamic Proxy
+	JDK提供的基于接口的动态代理
+	Cglib提供的基于字节码的动态代理
+	
+MethodHandle
+	类似于反射中的Method类，但它比Method类更加灵活和轻量级。
+	通过MethodHandle调用一般需要以下几步：
+		1.创建MethodType对象，指定方法的签名
+		2.在MethodHandles.Lookup中查找类型为MethodType的MethodHandle
+		3.传入方法参数并调用MethodHandle.invoke或者MethodHandle.invokeExact方法
+	
+	MethodHandle:
+		它是可对直接执行的方法(域，构造方法)的类型的引用，或者说，它是一个有能力安全调用方法的对象。通过句柄我们可以直接调用该句柄所引用的底层方法
+		
+		invokeExact
+			MethodHandles.Lookup lookup = MethodHandles.lookup();
+			MethodType type = MethodType.methodType(String.class,int.class,int.class);
+			MethodHandle md = lookup.findVirtual(String.class,"substring",type);
+			String str = (String)md.invokeExact("Hello Woeld",1,3);
+		静态方法不需要制定方法的接收对象，如调用Math.min()，则：mh.invokeExact(3,4)
+		注意：
+			invokeExact方法在调用的时候要求严格的类型匹配，方法的返回值也是在考虑的范围内，如果去掉这个类型转换，而直接赋值给Object，在调用的时候
+			会抛异常，去掉类型转换但是不进行赋值操作也是错误的，该方法会被认为返回值为void,也不同于句柄要求的String类型的返回值
+			
+		invoke
+			它会尝试在调用的时候进行返回值和参数类型的转换工作。这是通过MethodHandle类的asType方法来完成的。asType的作用是把当前的方法句柄适配到
+			新的MethodType上，并产生一个新的方法句柄。当方法句柄在调用时的类型与其声明的类型完全一致的时候invoke等同于invokeExact；否则，invoke
+			会先调用asType方法来尝试适配到调用时的类型。如果适配成功，调用可以继续；否则会抛出相关的异常。
+			从待转换源类型S到目标类型T匹配成功的基本原则如下：
+				1)可以通过Java的类型转换来完成，一般是从子类转换到父类，接口的实现类转换成接口
+				2)可以通过基本类型的转换来完成，只能进行类型范围的扩大
+				3)可以通过基本类型的自动装箱和拆箱来完成
+				4)如果S有返回值类型，而T的返回值类型是void，S的返回值会被丢弃
+				5)如果S的返回值是void，而T的返回值是引用类型，T的返回值是null
+				6)如果S的返回值是void，而T的返回值是基本类型，T的返回值是0
+		
+		invokeWithArguments
+			该方法在调用时可以指定任意多个Object类型的参数。完整的调用方式是首先根据传入的实际参数的个数，通过MethodType的genericMethodType方法
+			得到一个返回值和参数类型都是Object的新方法类型。再把原始的方法句柄通过asType转换后得到一个新的方法句柄。最后通过新的方法句柄的invokeExact
+			完成调用。它可以通过Java反射API正常获取和调用，可以作为反射API和方法句柄之间的桥梁
+			
+		asVarargsCollector
+			它的作用是原始的方法句柄中的最后一个数组类型的参数转换成对应类型的可变长度参数
+			public void normalMethod(String arg1,int args2,int[] args3){}
+			{
+			MethodHandles.Lookup lookup = MethodHandles.lookup();
+    		MethodHandle mh = lookup.findVirtual(Varargs.class, "normalMethod", 
+    							MethodType.methodType(void.class, String.class, int.class, int[].class));
+   		 	mh = mh.asVarargsCollector(int[].class);
+    		mh.invoke(this, "Hello", 2, 3, 4, 5);
+			}
+			
+		asCollector
+			该方法只会把指定数量的参数收集到原始方法句柄所对应的底层方法的数组类型参数中，而不像asVarargsCollector那样可以收集任意数量的参数
+			MethodHandles.Lookup lookup = MethodHandles.lookup();
+    		MethodHandle mh = lookup.findVirtual(Varargs.class, "normalMethod", 
+    							MethodType.methodType(void.class, String.class, int.class, int[].class));
+    		mh = mh.asCollector(int[].class, 2);
+    		mh.invoke(this, "Hello", 2, 3, 4);
+    	
+    	asSpreader
+    		把长度可变的参数转换成数组类型的参数
+    		public void toBeSpreaded(String arg1, int arg2, int arg3, int arg4) {}
+    		{
+    		MethodHandles.Lookup lookup = MethodHandles.lookup();
+    		MethodHandle mh = lookup.findVirtual(Varargs.class, "toBeSpreaded", 
+    							MethodType.methodType(void.class, String.class, int.class, int.class, int.class));
+    		mh = mh.asSpreader(int[].class, 3);
+    		mh.invoke(this, "Hello", new int[]{3, 4, 5});
+    		}
+    		
+    	asFixedArity
+    		把参数长度可变的方法转换成参数长度不变的方法
+    		public void varargsMethod(String arg1, int... args) {}
+    		{
+    		MethodHandles.Lookup lookup = MethodHandles.lookup();
+   		 	MethodHandle mh = lookup.findVirtual(Varargs.class, "varargsMethod", 
+   		 						MethodType.methodType(void.class, String.class, int[].class));
+    		mh = mh.asFixedArity();
+    		mh.invoke(this, "Hello", new int[]{2, 4});
+    		}
+	
+	MethodType:
+		它是表示方法签名类型的不可变对象。每个方法句柄都有一个MethodType实例，用来指定方法的返回类型的参数类型。它的类型完全由参数类型和方法类型来决定，而它所引用的底层
+		方法和类没有关系，给定指定的返回类型和输入参数就返回一个MethodType。
+		
+		MethodType只能通过MethodType的静态工厂方法来创建。这样的工厂方法有三类。
+		
+		第一类是通过指定参数和返回值的类型来创建，这里主要使用methodType()的多种重载方式,返回值类型是方法参数的第一个
+		eg:
+			MethodType mt1 = MethodType.methodType(void.class,String.class,int.class);
+			MethodType mt2 = MethodType.methodType(boolean.class,mt1);//使用mt1中的参数列表 
+			
+		第二类是生成通用的MethodType类型，即返回值和参数的类型都是Object。通过genericMethodType()来创建，两种重载方式
+		第一种只需要指定方法类型中包含的Object类型的参数即可；第二种提供一个额外的参数说明是否在参数列表的后面添加一个Object[]类型的参数
+		eg:
+			MethodType mt1 = MethodType.genericMethodType(3);//包含三个Object类型参数的方法签名
+			MethodType mt2 = MethodType.genericMethodType(2,true);//包含两个参数，和一个Object[]参数
+			
+		第三种是指定方法类型在字节码中的表现形式，通过fromMethodDescriptorString()来创建
+		需要指定类加载器，默认为系统类加载器
+		eg:
+			ClassLoader c1 = this.getClass().getClassLoader();
+			String descriptor = "(II[CI)V";
+			MethodType mt1 = MethodType.fromMethodDescriptorString()(descriptor,c1);	
+			
+		获取MethodType对象后，对其返回值和参数进行修改，注意，该类是不可变类，返回的是新的MethodType对象
+		//(int,int)String
+		MethodType mt = MethodType.methodType(String.class,int.class,int.class);
+		//(int,int.float)String
+		mt = mt.appendParameterTypes(float.class);
+		//(int,double,long,int,float)String
+		mt = mt.insertParameterTypes(1,double.class,long.class);
+		//(int,double,int,float)String
+		mt = mt.dropParameterTypes(2,3);
+		//(int,double,String,float)String
+		mt = mt.changeParameterTypes(2,String.class);
+		//(int,double,String,float)void
+		mt = mt.changeReturnType(void.class);
+		
+		获取MethodType对象后，一次性修改返回值和所有参数的类型的示例
+		wrap和unwrap用来在基本类型和包装类型间转换，generic把所有返回值和参数变为Object,erase只把引用类型变为Object
+		//(int,double)Integer
+	    MethodType mt = MethodType.methodType(Integer.class, int.class, double.class);
+	    //(Integer,Double)Integer
+	    MethodType wrapped = mt.wrap();
+	    //(int,double)int
+	    MethodType unwrapped = mt.unwrap();
+	    //(Object,Object)Object
+	    MethodType generic = mt.generic();
+	    //(int,double)Object
+	    MethodType erased = mt.erase();
+			
+	参数绑定：
+		如果方法句柄在调用时引用的底层的方法不是静态的，调用的第一个参数应该是该方法调用的接收者。这个参数的值一般在调用时指定，也可以事先绑定
+		通过bindTo方法可以预先绑定底层方法调用的接收者，而在实际调用的时候，只需要传入实际的参数即可，不需要指定方法的接收者
+		
+		MethodHandles.Lookup lookup = MethodHandles.lookup();
+    	MethodHandle mh = lookup.findVirtual(String.class, "length", MethodType.methodType(int.class));
+    	int len = (int) mh.invoke("Hello"); //值为5
+    	
+    	mh = mh.bindTo("Hello World");
+    	len = (int) mh.invoke(); //值为11
+    	
+    	对于一个MethodHandle，可以多次使用bindTo方法为其中多个参数绑定值
+    	
+    	MethodHandles.Lookup lookup = MethodHandles.lookup();
+    	MethodHandle mh = lookup.findVirtual(String.class, "indexOf",
+    						MethodType.methodType(int.class, String.class, int.class));
+    	mh = mh.bindTo("Hello").bindTo("l");
+    	System.out.println(mh.invoke(2)); //值为2
+    	
+    	注意：
+    		在进行参数绑定的时候，只能对引用类型的参数进行绑定，对于包含基本类型参数的方法句柄，可以先使用wrap方法把方法类型中的基本类型转换成对应的包装类，
+    		再通过方法句柄的asType将其转换成新的句柄
+    		
+    	MethodHandle mh = lookup.findVirtual(String.class, "substring", MethodType.methodType(String.class, int.class, int.class));
+		mh = mh.asType(mh.type().wrap());
+		mh = mh.bindTo("Hello World").bindTo(3);
+		System.out.println(mh.invoke(5)); //值为“lo”
+		
+	获取方法句柄
+		MethodHandles.Lookup
+			findConstructor:构造方法
+			findVirtual:一般方法
+			findStatic:静态方法
+			findSpecial:特殊方法，主要是私有方法，需要指定调用类，当方法句柄被调用时，指定的调用类必须具备访问私有方法的权限
+			
+			findSetter:设置域
+			findGetter:获取域
+			findStaticSetter:设置静态域
+			findStaticGetter:获取静态域
+			
+			unreflectConstructor(Constructor)
+			unreflect(Method)
+			unreflectSpecial(privateMethod,Class)
+			unreflectGetter(Field)
+			unreflectSetter(Field)
+	
+	MethodHandles静态方法:
+		arrayElementGetter()
+		arrayElementSetter()
+		
+		identity():在每次调用的时候，总是返回其输入参数的值
+		constant():在生成的时候指定一个常量值，以后这个方法句柄被调用的时候，总是返回这个常量值
+		
+		
+	方法句柄变换:
+	

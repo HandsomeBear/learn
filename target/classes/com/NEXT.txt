@@ -1,0 +1,21 @@
+java.lang.reflect
+	反射API
+	动态代理
+	
+java.lang.annotation
+	注解处理器
+	动态代理
+	
+java.util.concurrent
+	AtomicClass
+	AQS
+	ThreadPool
+	
+java.io
+	面向stream的API
+	面向channel的API
+	
+Design-Pattern
+	结构型模式-----done
+	创建型模式
+	行为型模式
