@@ -1,0 +1,4 @@
+instrument
+
+javassist
+	可以用Javassist改变Java类的字节码，而无需真正了解关于字节码或者Java虚拟机结构的任何内容

@@ -1,8 +1,5 @@
 package com.sh.annotation;
 
-import com.sh.factory.Factory;
-
-@Factory(id = "Tiramisu", type = Meal.class)
 public class Tiramisu implements Meal {
 
 	@Override

@@ -7,6 +7,11 @@ import org.slf4j.LoggerFactory;
 
 public class Person extends Creature implements ISpeakListener,Serializable{
 
+	/**
+	 * @Field serialVersionUID:
+	 */
+	private static final long serialVersionUID = -479883705693434598L;
+
 	private static final Logger logger = LoggerFactory.getLogger(Person.class);
 	
 	private String name;
@@ -25,6 +30,7 @@ public class Person extends Creature implements ISpeakListener,Serializable{
 		logger.info("Person--Person(String name, int age, int id)");
 	}
 	
+	@SuppressWarnings("unused")
 	private Person(String name) {
 		this.name = name;
 	}
@@ -33,6 +39,7 @@ public class Person extends Creature implements ISpeakListener,Serializable{
 		return name;
 	}
 
+	@SuppressWarnings("unused")
 	private void setName(String name) {
 		this.name = name;
 	}
@@ -71,6 +78,7 @@ public class Person extends Creature implements ISpeakListener,Serializable{
 		
 	}
 	
+	@SuppressWarnings("unused")
 	private class InnerPriClass {
 		
 	}

@@ -19,14 +19,6 @@
 	<dependencies>
 
 		<dependency>
-			<groupId>com.sh</groupId>
-			<artifactId>factory</artifactId>
-			<version>1.1.1</version>
-			<scope>system</scope>
-			<systemPath>F:/apache-maven-repository/com/sh/factory/1.1.1/factory-1.1.1.jar</systemPath>
-		</dependency>
-
-		<dependency>
 			<groupId>org.apache.httpcomponents</groupId>
 			<artifactId>httpclient</artifactId>
 			<version>${httpclient.version}</version>

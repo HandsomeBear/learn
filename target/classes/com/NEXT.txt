@@ -17,5 +17,10 @@ java.io
 	
 Design-Pattern
 	结构型模式-----done
-	创建型模式
+	创建型模式-----done
 	行为型模式
+	
+java.lang.instrument
+	javassist
+	cglib
+	asm
